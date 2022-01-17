@@ -1,4 +1,4 @@
-package finitedifference
+package cfd
 
 import "fmt"
 
