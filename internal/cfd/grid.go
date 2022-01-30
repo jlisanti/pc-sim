@@ -1,7 +1,6 @@
 package cfd
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -60,7 +59,7 @@ func NewGrid(length int64) *Grid {
 	var A []float64
 	var ID []float64
 	Cv := 718.0
-	R := 287.12
+	gasConstant := 287.12
 	H := 1.0
 	Tair := 300.0
 	Fric := 0.1
@@ -77,14 +76,14 @@ func NewGrid(length int64) *Grid {
 		utmp = append(utmp, 0.0)
 		Ttmp = append(Ttmp, T)
 		Etmp = append(Etmp, Cv*T)
-		Ptmp = append(Ptmp, rho*R*T)
-		Ctmp = append(Ctmp, math.Sqrt(gamma*R*T))
+		Ptmp = append(Ptmp, rho*gasConstant*T)
+		Ctmp = append(Ctmp, math.Sqrt(gamma*gasConstant*T))
 		A = append(A, 1.0)
 		ID = append(ID, 0.05)
 	}
 	nGrid := Grid{Points: length, Area: A, ID: ID, Dz: 0.0000001, Rho: rhotmp,
 		RhoU: rhoUtmp, RhoE: rhoEtmp, U: utmp, T: Ttmp, E: Etmp, P: Ptmp,
-		Tair: Tair, Fric: Fric, H: H, Cv: Cv, R: R, C: Ctmp,
+		Tair: Tair, Fric: Fric, H: H, Cv: Cv, R: gasConstant, C: Ctmp, Gamma: gamma,
 		Tmax: Ttmp[length/2], Pmax: Ptmp[length/2], Rhomax: rhotmp[length/2], Umax: utmp[length/2],
 		Tmin: Ttmp[length/2], Pmin: Ptmp[length/2], Rhomin: rhotmp[length/2], Umin: utmp[length/2],
 		Rhoi: rhotmpi, RhoUi: rhoUtmpi, RhoEi: rhoEtmpi}
@@ -100,10 +99,12 @@ func UpdateSubStep(i int, tGrid *Grid, ki float64, li float64, ni float64) {
 	tGrid.T[i] = (1.0 / tGrid.Cv) * (tGrid.E[i] - math.Pow(tGrid.U[i], 2)/2.0)
 	tGrid.P[i] = tGrid.Rho[i] * tGrid.R * tGrid.T[i]
 	tGrid.C[i] = math.Sqrt(tGrid.Gamma * tGrid.R * tGrid.T[i])
-	if i == 999 {
-		fmt.Println(tGrid.Rho[i], tGrid.RhoU[i], tGrid.RhoE[i])
+	/*
+		if i == 999 {
+			fmt.Println(tGrid.Rho[i], tGrid.RhoU[i], tGrid.RhoE[i])
 
-	}
+		}
+	*/
 }
 
 func UpdateStep(i int, tGrid *Grid, ki [4]float64, li [4]float64, ni [4]float64) {

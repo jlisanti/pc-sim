@@ -27,7 +27,7 @@ func main() {
 	// integrate in time
 	rkIndex := 0
 	t := float64(0.0)
-	dt := float64(0.00000001)
+	dt := float64(0.000001)
 	cflNum := float64(0.01)
 
 	tMax := float64(0.000000001)
@@ -45,7 +45,7 @@ func main() {
 		// loop over rk coefficients
 		for {
 			// loop over grid
-			fmt.Println("rkIndex = ", rkIndex)
+			//fmt.Println("rkIndex = ", rkIndex)
 			for i := 0; i < int(cGrid.Points); i++ {
 				cGrid.Rhoi[i] = cGrid.Rho[i]
 				cGrid.RhoUi[i] = cGrid.RhoU[i]
