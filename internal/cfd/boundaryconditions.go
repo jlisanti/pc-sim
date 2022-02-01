@@ -27,4 +27,6 @@ func PressureInlet(c float64, u float64, rho float64, Po float64, Ps float64, To
 	return rhoIn, uIn, pIn
 }
 
-func PressureOutlet()
+func PressureOutlet() {
+
+}

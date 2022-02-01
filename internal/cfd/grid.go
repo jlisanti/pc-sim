@@ -6,9 +6,9 @@ import (
 
 type Grid struct {
 	Points       int64
-	W            []conservative
-	Wi           []conservative
-	U            []primitive
+	U            []conservative
+	Un           []conservative
+	W            []primitive
 	WorkingFluid fluid
 	Area         []float64
 	ID           []float64
@@ -18,7 +18,7 @@ type Grid struct {
 
 type conservative struct {
 	Rho  float64
-	RhoU float64
+	RhoV float64
 	RhoE float64
 }
 
@@ -26,7 +26,7 @@ type primitive struct {
 	P float64
 	E float64
 	T float64
-	U float64
+	V float64
 	C float64
 }
 
@@ -86,11 +86,11 @@ func NewGrid(length int64) *Grid {
 			P: rho * gasConstant * T,
 			T: T,
 			E: Cv * T,
-			U: 0.0,
+			V: 0.0,
 			C: math.Sqrt(gamma * gasConstant * T)}
 		conservativei := conservative{
 			Rho:  rho,
-			RhoU: 0.0,
+			RhoV: 0.0,
 			RhoE: Cv * T * rho,
 		}
 
@@ -102,9 +102,9 @@ func NewGrid(length int64) *Grid {
 	}
 	nGrid := Grid{
 		Points:       length,
-		W:            conservativetmp,
-		Wi:           conservativetmp,
-		U:            primitivetmp,
+		U:            conservativetmp,
+		Un:           conservativetmp,
+		W:            primitivetmp,
 		WorkingFluid: fluidtmp,
 		Area:         A,
 		ID:           ID,
@@ -114,14 +114,14 @@ func NewGrid(length int64) *Grid {
 }
 
 func UpdateSubStep(i int, tGrid *Grid, ki float64, li float64, ni float64) {
-	tGrid.Rho[i] = tGrid.Rho[i] + 0.5*ki
-	tGrid.RhoU[i] = tGrid.RhoU[i] + 0.5*li
-	tGrid.RhoE[i] = tGrid.RhoE[i] + 0.5*ni
-	tGrid.U[i] = tGrid.RhoU[i] / tGrid.Rho[i]
-	tGrid.E[i] = tGrid.RhoE[i] / tGrid.Rho[i]
-	tGrid.T[i] = (1.0 / tGrid.Cv) * (tGrid.E[i] - math.Pow(tGrid.U[i], 2)/2.0)
-	tGrid.P[i] = tGrid.Rho[i] * tGrid.R * tGrid.T[i]
-	tGrid.C[i] = math.Sqrt(tGrid.Gamma * tGrid.R * tGrid.T[i])
+	tGrid.U[i].Rho = tGrid.U[i].Rho + 0.5*ki
+	tGrid.U[i].RhoV = tGrid.U[i].RhoV + 0.5*li
+	tGrid.U[i].RhoE = tGrid.U[i].RhoE + 0.5*ni
+	tGrid.W[i].V = tGrid.U[i].RhoV / tGrid.U[i].Rho
+	tGrid.W[i].E = tGrid.U[i].RhoE / tGrid.U[i].Rho
+	tGrid.W[i].T = (1.0 / tGrid.WorkingFluid.Cv) * (tGrid.W[i].E - math.Pow(tGrid.W[i].V, 2)/2.0)
+	tGrid.W[i].P = tGrid.U[i].Rho * tGrid.WorkingFluid.R * tGrid.W[i].T
+	tGrid.W[i].C = math.Sqrt(tGrid.WorkingFluid.Gamma * tGrid.WorkingFluid.R * tGrid.W[i].T)
 	/*
 		if i == 999 {
 			fmt.Println(tGrid.Rho[i], tGrid.RhoU[i], tGrid.RhoE[i])
@@ -131,14 +131,14 @@ func UpdateSubStep(i int, tGrid *Grid, ki float64, li float64, ni float64) {
 }
 
 func UpdateStep(i int, tGrid *Grid, ki [4]float64, li [4]float64, ni [4]float64) {
-	tGrid.Rho[i] = tGrid.Rhoi[i] + (1.0/6.0)*(ki[0]+2.0*ki[1]+2.0*ki[2]+ki[3])
-	tGrid.RhoU[i] = tGrid.RhoUi[i] + (1.0/6.0)*(li[0]+2.0*li[1]+2.0*li[2]+li[3])
-	tGrid.RhoE[i] = tGrid.RhoEi[i] + (1.0/6.0)*(ni[0]+2.0*ni[1]+2.0*ni[2]+ni[3])
-	tGrid.U[i] = tGrid.RhoU[i] / tGrid.Rho[i]
-	tGrid.E[i] = tGrid.RhoE[i] / tGrid.Rho[i]
-	tGrid.T[i] = (1.0 / tGrid.Cv) * (tGrid.E[i] - math.Pow(tGrid.U[i], 2)/2.0)
-	tGrid.P[i] = tGrid.Rho[i] * tGrid.R * tGrid.T[i]
-	tGrid.C[i] = math.Sqrt(tGrid.Gamma * tGrid.R * tGrid.T[i])
+	tGrid.U[i].Rho = tGrid.Un[i].Rho + (1.0/6.0)*(ki[0]+2.0*ki[1]+2.0*ki[2]+ki[3])
+	tGrid.U[i].RhoV = tGrid.Un[i].RhoV + (1.0/6.0)*(li[0]+2.0*li[1]+2.0*li[2]+li[3])
+	tGrid.U[i].RhoE = tGrid.Un[i].RhoE + (1.0/6.0)*(ni[0]+2.0*ni[1]+2.0*ni[2]+ni[3])
+	tGrid.W[i].V = tGrid.U[i].RhoV / tGrid.U[i].Rho
+	tGrid.W[i].E = tGrid.U[i].RhoE / tGrid.U[i].Rho
+	tGrid.W[i].T = (1.0 / tGrid.WorkingFluid.Cv) * (tGrid.W[i].E - math.Pow(tGrid.W[i].V, 2)/2.0)
+	tGrid.W[i].P = tGrid.U[i].Rho * tGrid.WorkingFluid.R * tGrid.W[i].T
+	tGrid.W[i].C = math.Sqrt(tGrid.WorkingFluid.Gamma * tGrid.WorkingFluid.R * tGrid.W[i].T)
 	/*
 		if tGrid.Rho[i] > tGrid.Rhomax {
 			tGrid.Rhomax = tGrid.Rho[i]

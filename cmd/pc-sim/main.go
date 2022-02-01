@@ -38,18 +38,20 @@ func main() {
 		dt = cfd.Cfl(cGrid, cflNum)
 		t += dt
 		fmt.Println("t = ", t)
-		fmt.Println("Umax = ", cGrid.Umax, " at: ", cGrid.Umaxi, " Pmax = ", cGrid.Pmax, " at: ", cGrid.Pmaxi,
-			"Tmax = ", cGrid.Tmax, " at: ", cGrid.Tmaxi, " rhomax = ", cGrid.Rhomax, " at: ", cGrid.Rhomaxi)
-		fmt.Println("Umin = ", cGrid.Umin, " at: ", cGrid.Umini, " Pmin = ", cGrid.Pmin, " at: ", cGrid.Pmini,
-			"Tmin = ", cGrid.Tmin, " at: ", cGrid.Tmini, " rhomin = ", cGrid.Rhomin, " at: ", cGrid.Rhomini)
+		/*
+			fmt.Println("Umax = ", cGrid.Umax, " at: ", cGrid.Umaxi, " Pmax = ", cGrid.Pmax, " at: ", cGrid.Pmaxi,
+				"Tmax = ", cGrid.Tmax, " at: ", cGrid.Tmaxi, " rhomax = ", cGrid.Rhomax, " at: ", cGrid.Rhomaxi)
+			fmt.Println("Umin = ", cGrid.Umin, " at: ", cGrid.Umini, " Pmin = ", cGrid.Pmin, " at: ", cGrid.Pmini,
+				"Tmin = ", cGrid.Tmin, " at: ", cGrid.Tmini, " rhomin = ", cGrid.Rhomin, " at: ", cGrid.Rhomini)
+		*/
 		// loop over rk coefficients
 		for {
 			// loop over grid
 			//fmt.Println("rkIndex = ", rkIndex)
 			for i := 0; i < int(cGrid.Points); i++ {
-				cGrid.Rhoi[i] = cGrid.Rho[i]
-				cGrid.RhoUi[i] = cGrid.RhoU[i]
-				cGrid.RhoEi[i] = cGrid.RhoE[i]
+				cGrid.Un[i].Rho = cGrid.U[i].Rho
+				cGrid.Un[i].RhoV = cGrid.U[i].RhoV
+				cGrid.Un[i].RhoE = cGrid.U[i].RhoE
 			}
 			if rkIndex == 3 {
 				for i := 0; i < int(cGrid.Points); i++ {
