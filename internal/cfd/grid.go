@@ -5,27 +5,42 @@ import (
 )
 
 type Grid struct {
-	Points  int64
-	Area    []float64
-	ID      []float64
-	Rho     []float64
-	RhoU    []float64
-	RhoE    []float64
-	Rhoi    []float64
-	RhoUi   []float64
-	RhoEi   []float64
-	P       []float64
-	E       []float64
-	T       []float64
-	U       []float64
-	C       []float64
-	Dz      float64
-	Tair    float64
-	Fric    float64
-	H       float64
-	Cv      float64
-	R       float64
-	Gamma   float64
+	Points       int64
+	W            []conservative
+	Wi           []conservative
+	U            []primitive
+	WorkingFluid fluid
+	Area         []float64
+	ID           []float64
+	Dz           float64
+	//MaxMin       varExtremes
+}
+
+type conservative struct {
+	Rho  float64
+	RhoU float64
+	RhoE float64
+}
+
+type primitive struct {
+	P float64
+	E float64
+	T float64
+	U float64
+	C float64
+}
+
+type fluid struct {
+	Tair  float64
+	Fric  float64
+	H     float64
+	Cv    float64
+	R     float64
+	Gamma float64
+}
+
+/*
+type varExtremes struct {
 	Umax    float64
 	Rhomax  float64
 	Pmax    float64
@@ -43,19 +58,11 @@ type Grid struct {
 	Pmini   int
 	Tmini   int
 }
+*/
 
 func NewGrid(length int64) *Grid {
-	var rhotmp []float64
-	var rhoUtmp []float64
-	var rhoEtmp []float64
-	var rhotmpi []float64
-	var rhoUtmpi []float64
-	var rhoEtmpi []float64
-	var utmp []float64
-	var Ttmp []float64
-	var Etmp []float64
-	var Ptmp []float64
-	var Ctmp []float64
+	var primitivetmp []primitive
+	var conservativetmp []conservative
 	var A []float64
 	var ID []float64
 	Cv := 718.0
@@ -66,27 +73,43 @@ func NewGrid(length int64) *Grid {
 	T := 300.0
 	rho := 1.2
 	gamma := 1.4
+	fluidtmp := fluid{
+		Tair:  Tair,
+		Fric:  Fric,
+		H:     H,
+		Cv:    Cv,
+		R:     gasConstant,
+		Gamma: gamma,
+	}
 	for i := int64(0); i < length; i++ {
-		rhotmp = append(rhotmp, rho)
-		rhoUtmp = append(rhoUtmp, 0.0)
-		rhoEtmp = append(rhoEtmp, Cv*T)
-		rhotmpi = append(rhotmpi, rho)
-		rhoUtmpi = append(rhoUtmpi, 0.0)
-		rhoEtmpi = append(rhoEtmpi, Cv*T)
-		utmp = append(utmp, 0.0)
-		Ttmp = append(Ttmp, T)
-		Etmp = append(Etmp, Cv*T)
-		Ptmp = append(Ptmp, rho*gasConstant*T)
-		Ctmp = append(Ctmp, math.Sqrt(gamma*gasConstant*T))
+		primitivei := primitive{
+			P: rho * gasConstant * T,
+			T: T,
+			E: Cv * T,
+			U: 0.0,
+			C: math.Sqrt(gamma * gasConstant * T)}
+		conservativei := conservative{
+			Rho:  rho,
+			RhoU: 0.0,
+			RhoE: Cv * T * rho,
+		}
+
+		primitivetmp = append(primitivetmp, primitivei)
+		conservativetmp = append(conservativetmp, conservativei)
+
 		A = append(A, 1.0)
 		ID = append(ID, 0.05)
 	}
-	nGrid := Grid{Points: length, Area: A, ID: ID, Dz: 0.0000001, Rho: rhotmp,
-		RhoU: rhoUtmp, RhoE: rhoEtmp, U: utmp, T: Ttmp, E: Etmp, P: Ptmp,
-		Tair: Tair, Fric: Fric, H: H, Cv: Cv, R: gasConstant, C: Ctmp, Gamma: gamma,
-		Tmax: Ttmp[length/2], Pmax: Ptmp[length/2], Rhomax: rhotmp[length/2], Umax: utmp[length/2],
-		Tmin: Ttmp[length/2], Pmin: Ptmp[length/2], Rhomin: rhotmp[length/2], Umin: utmp[length/2],
-		Rhoi: rhotmpi, RhoUi: rhoUtmpi, RhoEi: rhoEtmpi}
+	nGrid := Grid{
+		Points:       length,
+		W:            conservativetmp,
+		Wi:           conservativetmp,
+		U:            primitivetmp,
+		WorkingFluid: fluidtmp,
+		Area:         A,
+		ID:           ID,
+		Dz:           0.000001,
+	}
 	return &nGrid
 }
 
@@ -116,36 +139,38 @@ func UpdateStep(i int, tGrid *Grid, ki [4]float64, li [4]float64, ni [4]float64)
 	tGrid.T[i] = (1.0 / tGrid.Cv) * (tGrid.E[i] - math.Pow(tGrid.U[i], 2)/2.0)
 	tGrid.P[i] = tGrid.Rho[i] * tGrid.R * tGrid.T[i]
 	tGrid.C[i] = math.Sqrt(tGrid.Gamma * tGrid.R * tGrid.T[i])
-	if tGrid.Rho[i] > tGrid.Rhomax {
-		tGrid.Rhomax = tGrid.Rho[i]
-		tGrid.Rhomaxi = i
-	}
-	if tGrid.Rho[i] < tGrid.Rhomin {
-		tGrid.Rhomin = tGrid.Rho[i]
-		tGrid.Rhomini = i
-	}
-	if tGrid.U[i] > tGrid.Umax {
-		tGrid.Umax = tGrid.U[i]
-		tGrid.Umaxi = i
-	}
-	if tGrid.U[i] < tGrid.Umin {
-		tGrid.Umin = tGrid.U[i]
-		tGrid.Umini = i
-	}
-	if tGrid.T[i] > tGrid.Tmax {
-		tGrid.Tmax = tGrid.T[i]
-		tGrid.Tmaxi = i
-	}
-	if tGrid.T[i] < tGrid.Tmin {
-		tGrid.Tmin = tGrid.T[i]
-		tGrid.Tmini = i
-	}
-	if tGrid.P[i] > tGrid.Pmax {
-		tGrid.Pmax = tGrid.P[i]
-		tGrid.Pmaxi = i
-	}
-	if tGrid.P[i] < tGrid.Pmin {
-		tGrid.Pmin = tGrid.P[i]
-		tGrid.Pmini = i
-	}
+	/*
+		if tGrid.Rho[i] > tGrid.Rhomax {
+			tGrid.Rhomax = tGrid.Rho[i]
+			tGrid.Rhomaxi = i
+		}
+		if tGrid.Rho[i] < tGrid.Rhomin {
+			tGrid.Rhomin = tGrid.Rho[i]
+			tGrid.Rhomini = i
+		}
+		if tGrid.U[i] > tGrid.Umax {
+			tGrid.Umax = tGrid.U[i]
+			tGrid.Umaxi = i
+		}
+		if tGrid.U[i] < tGrid.Umin {
+			tGrid.Umin = tGrid.U[i]
+			tGrid.Umini = i
+		}
+		if tGrid.T[i] > tGrid.Tmax {
+			tGrid.Tmax = tGrid.T[i]
+			tGrid.Tmaxi = i
+		}
+		if tGrid.T[i] < tGrid.Tmin {
+			tGrid.Tmin = tGrid.T[i]
+			tGrid.Tmini = i
+		}
+		if tGrid.P[i] > tGrid.Pmax {
+			tGrid.Pmax = tGrid.P[i]
+			tGrid.Pmaxi = i
+		}
+		if tGrid.P[i] < tGrid.Pmin {
+			tGrid.Pmin = tGrid.P[i]
+			tGrid.Pmini = i
+		}
+	*/
 }
